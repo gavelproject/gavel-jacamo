@@ -69,11 +69,12 @@ eclipse {
 repositories {
 	mavenCentral()
 	maven { url 'http://jacamo.sourceforge.net/maven2' }
-	maven { url "http://jade.tilab.com/maven/" }
+	maven { url "https://jitpack.io" }
 }
 
 dependencies {
 	implementation 'org.jacamo:jacamo:latest.integration'
+	api 'com.github.gavelproject:gavel:master-SNAPSHOT'
 }
 
 sourceSets {
