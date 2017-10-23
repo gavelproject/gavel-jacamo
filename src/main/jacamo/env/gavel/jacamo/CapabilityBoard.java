@@ -18,13 +18,17 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *******************************************************************************/
-package org.gavelproject.jacamo;
-
-import org.gavelproject.capability.Capability;
+package gavel.jacamo;
 
 import cartago.Artifact;
 import cartago.OPERATION;
 import cartago.OpFeedbackParam;
+import gavel.impl.capability.DefaultCapability;
+import gavel.impl.common.Enums;
+import gavel.impl.repo.CapabilityBoards;
+import jason.JasonException;
+import jason.asSemantics.Agent;
+import jason.asSyntax.parser.ParseException;
 
 /**
  * Board where capabilities may be stored so that agents may acquire them through operations.
@@ -33,6 +37,32 @@ import cartago.OpFeedbackParam;
  *
  */
 public final class CapabilityBoard extends Artifact {
+  private gavel.api.repo.CapabilityBoard cb;
+
+  public void init() {
+    cb = CapabilityBoards.of();
+    setupProps();
+  }
+
+  public void init(String file) {
+    cb = CapabilityBoards.fromFile(file);
+    setupProps();
+  }
+
+  private void setupProps() {
+    defineObsProperty("capabilities", (Object[]) cb.getCapabilities());
+    defineObsProperty("detectors", cb.getDetectors()
+                                     .toArray());
+    defineObsProperty("evaluators", cb.getEvaluators()
+                                      .toArray());
+    defineObsProperty("executors", cb.getExecutors()
+                                     .toArray());
+    defineObsProperty("controllers", cb.getControllers()
+                                       .toArray());
+    defineObsProperty("legislators", cb.getLegislators()
+                                       .toArray());
+  }
+
   /**
    * Return default plans to perform actions which are supposed to be conducted by holders of a
    * certain {@code capability} depending on the {@code agentType}.
@@ -42,25 +72,37 @@ public final class CapabilityBoard extends Artifact {
    * @param plans output parameter used to return the plans
    */
   @OPERATION
-  public void acquire(String capability, String agentType, OpFeedbackParam<Object> plans) {
-    Capability capab = Capability.valueOf(capability.toUpperCase());
-    AgentType type = AgentType.valueOf(agentType.toUpperCase());
-    switch (capab) {
+  public void acquireCapability(String capability, OpFeedbackParam<Object> plans) {
+    switch (Enums.lookup(DefaultCapability.class, capability)) {
       case DETECTOR:
-        type.getPlansForDetector(plans);
+        plans.set(getPlansFrom("/agt/detector.asl"));
         break;
       case EVALUATOR:
-        type.getPlansForEvaluator(plans);
+        plans.set(getPlansFrom("/agt/evaluator.asl"));
         break;
       case EXECUTOR:
-        type.getPlansForExecutor(plans);
+        plans.set(getPlansFrom("/agt/executor.asl"));
         break;
       case CONTROLLER:
-        type.getPlansForController(plans);
+        plans.set(getPlansFrom("/agt/controller.asl"));
         break;
       case LEGISLATOR:
-        type.getPlansForLegislator(plans);
+        plans.set(getPlansFrom("/agt/legislator.asl"));
         break;
     }
+  }
+
+  private Object[] getPlansFrom(String file) {
+    Agent agent = new Agent();
+    try {
+      agent.initAg();
+      agent.parseAS(CapabilityBoard.class.getResourceAsStream(file));
+    } catch (ParseException | JasonException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return agent.getPL()
+                .getPlans()
+                .toArray();
   }
 }

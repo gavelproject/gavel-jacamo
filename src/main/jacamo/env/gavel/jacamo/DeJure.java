@@ -18,26 +18,30 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *******************************************************************************/
-package org.gavelproject.jacamo;
+package gavel.jacamo;
 
 import static jason.asSyntax.ASSyntax.createAtom;
+import static jason.asSyntax.ASSyntax.parseStructure;
 
 import java.util.Set;
-
-import org.gavelproject.common.Literable;
-import org.gavelproject.norm.Norm;
-import org.gavelproject.norm.Norms;
-import org.gavelproject.sanction.Sanction;
 
 import cartago.Artifact;
 import cartago.LINK;
 import cartago.OPERATION;
 import cartago.ObsProperty;
 import cartago.OpFeedbackParam;
-import jason.asSyntax.Atom;
+import gavel.api.norm.Norm;
+import gavel.api.nslink.NsLink;
+import gavel.api.sanction.Sanction;
+import gavel.impl.common.DefaultStatus;
+import gavel.impl.norm.Norms;
+import gavel.impl.nslink.NsLinks;
+import gavel.impl.repo.DeJures;
+import jason.asSyntax.Structure;
+import jason.asSyntax.parser.ParseException;
 
 /**
- * This artefact stores a regulative specification, which is composed of norms, sanctions, and
+ * This artifact stores a regulative specification, which is composed of norms, sanctions, and
  * norm-sanction links. It provides operations to consult and make changes, as well as observable
  * properties which reflect the current state of the regulative specification.
  * 
@@ -45,55 +49,76 @@ import jason.asSyntax.Atom;
  *
  */
 public final class DeJure extends Artifact {
-  private RegulativeSpec regulativeSpec;
+  private gavel.api.repo.DeJure deJure;
 
   /**
-   * Initialise {@link DeJure} repository based on data from the given regulative specification.
+   * Initializes {@link DeJure} repository based on data from the given regulative specification.
    * 
    * @param regulativeSpec path to file with the regulative specification
    */
   public void init(String regulativeSpec) {
-    this.regulativeSpec = RegulativeSpecs.fromFile(regulativeSpec);
-    this.regulativeSpec.getNorms()
-                       .forEach(this::defineObsProperty);
-    this.regulativeSpec.getSanctions()
-                       .forEach(this::defineObsProperty);
+    deJure = DeJures.fromSpecFile(regulativeSpec);
+    deJure.getNorms().forEach(this::defineObsProperty);
+    deJure.getSanctions().forEach(this::defineObsProperty);
+    deJure.getNsLinks().forEach(this::defineObsProperty);
   }
 
-  /** Handy method to define observable properties of a {@code literable}. */
-  private void defineObsProperty(Literable literable) {
-    defineObsProperty(literable.getFunctor(), literable.toLiteral()
-                                                       .getTerms()
-                                                       .toArray());
+  /** Handy method to define observable properties of an {@code obj}. */
+  private void defineObsProperty(Object obj) {
+    try {
+      Structure s = parseStructure(obj.toString());
+      defineObsProperty(s.getFunctor(), s.getTerms()
+                                         .toArray());
+    } catch (ParseException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
-  /** Handy method to update observable properties of a {@code literable}. */
-  private void updateObsProperty(Literable literable, Atom id) {
-    ObsProperty property = getObsPropertyByTemplate(literable.getFunctor(), id, null);
-    property.updateValue(literable.toLiteral()
-                                  .getTerms()
-                                  .toArray());
+  /** Handy method to update observable properties of an {@code obj}. */
+  private void updateObsProperty(Object obj, String id) {
+    try {
+      Structure s = parseStructure(obj.toString());
+      ObsProperty property = getObsPropertyByTemplate(s.getFunctor(), createAtom(id), null);
+      property.updateValue(s.getTerms()
+                            .toArray());
+    } catch (ParseException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
-  /** Handy method to remove observable properties of a {@code literable}. */
-  private void removeObsProperty(Literable literable) {
-    removeObsPropertyByTemplate(literable.getFunctor(), literable.toLiteral()
-                                                                 .getTerms()
-                                                                 .toArray());
+  /** Handy method to remove observable properties of a {@code obj}. */
+  private void removeObsProperty(Object obj) {
+    try {
+      Structure s = parseStructure(obj.toString());
+      removeObsPropertyByTemplate(s.getFunctor(), s.getTerms()
+                                                   .toArray());
+    } catch (ParseException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+  }
+
+  /** Returns norms through {@code out}. */
+  @LINK
+  @OPERATION
+  public void getNorms(OpFeedbackParam<Set<Norm>> out) {
+    out.set(deJure.getNorms());
   }
 
   /**
-   * Add new norm to regulative specification and define observable property for it.
+   * Adds new norm and defines observable property for it.
    * 
    * Only instances of {@link Norm} or {@link String} should be passed as argument. If {@code norm}
-   * is an instance of {@link String}, then it will be parsed using {@link Norms#parse(String)}
-   * before being added to the regulative specification.
+   * is an instance of {@link String}, then it will be parsed using {@link Norms#tryParse(String)}
+   * before being added to the repository.
    * 
    * @param norm norm to be added
    */
   @LINK
   @OPERATION
-  public <T> void addNorm(T norm) {
+  public void addNorm(Object norm) {
     if (norm instanceof Norm)
       addNorm((Norm) norm);
     else if (norm instanceof String)
@@ -105,38 +130,67 @@ public final class DeJure extends Artifact {
   }
 
   /**
-   * Add new norm to regulative specification and define observable property for it.
+   * Adds new norm and defines observable property for it.
    * 
-   * Note that only norms with different ids from the ones present in the specification can be
-   * added, even if disabled. If an already existing norm is tried to be added, such addition
-   * attempt is just ignored.
+   * Note that only norms with different ids from the ones present in the repository can be added,
+   * even if disabled. If an already existing norm is tried to be added, such addition attempt is
+   * just ignored.
    * 
    * @param norm norm to be added
    */
   private void addNorm(Norm norm) {
-    if (regulativeSpec.addNorm(norm)) {
+    if (deJure.addNorm(norm)) {
       defineObsProperty(norm);
     }
   }
 
   /**
-   * Remove norm from regulative specification and observable property with it.
+   * Removes norm along with its observable property.
    * 
    * @param norm norm to be removed
    */
   @LINK
   @OPERATION
-  public void removeNorm(Norm norm) {
+  public void removeNorm(String id) {
     // TODO: check whether operator agent is a legislator
-    if (regulativeSpec.removeNorm(norm.getId()) != null) {
+    Norm norm = deJure.removeNorm(id);
+    if (norm != null) {
+      removeObsPropertyByTemplate(NsLinks.getStructureName(), null, createAtom(id), null);
       removeObsProperty(norm);
     }
   }
 
+  /** Enables an existing norm with the given {@code id}. */
+  @LINK
+  @OPERATION
+  public void enableNorm(String id) {
+    Norm norm = deJure.getNorm(id);
+    if (deJure.enableNorm(id)) {
+      updateObsProperty(norm, id);
+    }
+  }
+
+  /** Disables an existing norm with the given {@code id}. */
+  @LINK
+  @OPERATION
+  public void disableNorm(String id) {
+    Norm norm = deJure.getNorm(id);
+    if (deJure.disableNorm(id)) {
+      updateObsProperty(norm, id);
+    }
+  }
+
+  /** Returns sanctions through {@code out}. */
+  @LINK
+  @OPERATION
+  public void getSanctions(OpFeedbackParam<Set<Sanction>> out) {
+    out.set(deJure.getSanctions());
+  }
+
   /**
-   * Add new sanction to regulative specification and define observable property for it.
+   * Adds new sanction and defines observable property for it.
    * 
-   * Note that only sanction with different ids from the ones present in the specification can be
+   * Note that only sanctions with different ids from the ones present in the repository can be
    * added, even if disabled. If an already existing sanction is tried to be added, such addition
    * attempt is just ignored.
    * 
@@ -144,81 +198,124 @@ public final class DeJure extends Artifact {
    */
   @LINK
   @OPERATION
-  public void addSanction(Sanction sanction) {
+  public void addSanction(Object sanction) {
     // TODO: check whether operator agent is a legislator
-    if (regulativeSpec.addSanction(sanction)) {
+    if (sanction instanceof Sanction)
+      addSanction((Sanction) sanction);
+    else if (sanction instanceof String)
+      addSanction(gavel.impl.sanction.Sanctions.tryParse((String) sanction));
+    else
+      failed("Expected " + String.class.getCanonicalName() + " or "
+          + Sanction.class.getCanonicalName() + " but got " + sanction.getClass()
+                                                                      .getCanonicalName());
+  }
+
+  /**
+   * Adds new sanction and defines observable property for it.
+   * 
+   * Note that only sanction with different ids from the ones present in the repository can be
+   * added, even if disabled. If an already existing sanction is tried to be added, such addition
+   * attempt is just ignored.
+   * 
+   * @param sanction sanction to be added
+   */
+  private void addSanction(Sanction sanction) {
+    if (deJure.addSanction(sanction)) {
       defineObsProperty(sanction);
     }
   }
 
   /**
-   * Remove sanction from regulative specification and observable property with it.
+   * Removes sanction along with observable property.
    * 
    * @param sanction sanction to be removed
    * @return {@code true} if sanction was removed successfully
    */
   @LINK
   @OPERATION
-  public void removeSanction(Sanction sanction) {
+  public void removeSanction(String id) {
     // TODO: check whether operator agent is a legislator
-    if (regulativeSpec.removeSanction(sanction.getId()) != null) {
+    Sanction sanction = deJure.removeSanction(id);
+    if (sanction != null) {
+      removeObsPropertyByTemplate(NsLinks.getStructureName(), null, null, createAtom(id));
       removeObsProperty(sanction);
     }
   }
 
-  /**
-   * Link existing norm and sanction with given ids.
-   * 
-   * The observable property of the norm is also updated upon successful linking.
-   * 
-   * @param normId id of the norm to be linked
-   * @param sanctionId id of the sanction to be linked
-   * @throws NullPointerException if any of the arguments are {@code null}
-   */
+  /** Enables an existing sanction with the given {@code id}. */
   @LINK
   @OPERATION
-  public void link(String normId, String sanctionId) {
-    // TODO: check whether operator agent is a legislator
-    Atom normIdAtom = createAtom(normId);
-    Atom sanctionIdAtom = createAtom(sanctionId);
+  public void enableSanction(String id) {
+    Sanction sanction = deJure.getSanction(id);
+    if (deJure.enableSanction(id)) {
+      updateObsProperty(sanction, id);
+    }
+  }
 
-    if (regulativeSpec.addLink(normIdAtom, sanctionIdAtom)) {
-      Norm norm = regulativeSpec.getNorm(normIdAtom);
-      updateObsProperty(norm, normIdAtom);
+  /** Disables an existing sanction with the given {@code id}. */
+  @LINK
+  @OPERATION
+  public void disableSanction(String id) {
+    Sanction sanction = deJure.getSanction(id);
+    if (deJure.disableSanction(id)) {
+      updateObsProperty(sanction, id);
     }
   }
 
   /**
-   * Unlink existing norm and sanction with given ids.
+   * Adds new norm-sanction link and defines observable property for it.
    * 
-   * The observable property of the norm is also updated upon successful unlinking.
+   * @param nsLink link to be added
+   */
+  @LINK
+  @OPERATION
+  public void addNsLink(String nsLink) {
+    // TODO: check whether operator agent is a legislator
+    NsLink link = NsLinks.tryParse(nsLink);
+    if (deJure.addNsLink(link)) {
+      defineObsProperty(link.toString());
+    }
+  }
+
+  /**
+   * Removes existing link between norm and sanction with given ids.
    * 
    * @param normId id of the norm
    * @param sanctionId id of the sanction
    */
   @LINK
   @OPERATION
-  public void unlink(String normId, String sanctionId) {
+  public void removeLink(String normId, String sanctionId) {
     // TODO: check whether operator agent is a legislator
-    Atom normIdAtom = createAtom(normId);
-    Norm norm = regulativeSpec.getNorm(normIdAtom);
-
-    if (regulativeSpec.unlink(normIdAtom, createAtom(sanctionId))) {
-      updateObsProperty(norm, normIdAtom);
+    NsLink link = deJure.removeNsLink(normId, sanctionId);
+    if (link != null) {
+      removeObsPropertyByTemplate(NsLinks.getStructureName(), null, createAtom(normId),
+          createAtom(sanctionId));
     }
   }
 
-  /** Return norms through {@link out}. */
+  /** Enables an existing link between a norm and a sanction. */
   @LINK
   @OPERATION
-  public void getNorms(OpFeedbackParam<Set<Norm>> out) {
-    out.set(regulativeSpec.getNorms());
+  public void enableNsLink(String normId, String sanctionId) {
+    if (deJure.enableNsLink(normId, sanctionId)) {
+      ObsProperty property = getObsPropertyByTemplate(NsLinks.getStructureName(), null,
+          createAtom(normId), createAtom(sanctionId));
+      property.updateValues(createAtom(DefaultStatus.ENABLED.toString()), createAtom(normId),
+          createAtom(sanctionId));
+    }
   }
 
-  /** Return sanctions through {@link out}. */
+  /** Disables an existing link between a norm and a sanction. */
   @LINK
   @OPERATION
-  public void getSanctions(OpFeedbackParam<Set<Sanction>> out) {
-    out.set(regulativeSpec.getSanctions());
+  public void disableNsLink(String normId, String sanctionId) {
+    if (deJure.disableNsLink(normId, sanctionId)) {
+      ObsProperty property = getObsPropertyByTemplate(NsLinks.getStructureName(), null,
+          createAtom(normId), createAtom(sanctionId));
+      property.updateValues(createAtom(DefaultStatus.DISABLED.toString()), createAtom(normId),
+          createAtom(sanctionId));
+    }
   }
+
 }
