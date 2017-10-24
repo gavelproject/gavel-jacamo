@@ -56,16 +56,16 @@ public final class CapabilityBoard extends Artifact {
                                   .map(c -> c.toString())
                                   .toArray();
     defineObsProperty("capabilities", new Object[] {capabilities});
-    defineObsProperty("detectors", cb.getDetectors()
-                                     .toArray());
-    defineObsProperty("evaluators", cb.getEvaluators()
-                                      .toArray());
-    defineObsProperty("executors", cb.getExecutors()
-                                     .toArray());
-    defineObsProperty("controllers", cb.getControllers()
-                                       .toArray());
-    defineObsProperty("legislators", cb.getLegislators()
-                                       .toArray());
+    defineObsProperty("detectors", new Object[] {cb.getDetectors()
+                                                   .toArray()});
+    defineObsProperty("evaluators", new Object[] {cb.getEvaluators()
+                                                    .toArray()});
+    defineObsProperty("executors", new Object[] {cb.getExecutors()
+                                                   .toArray()});
+    defineObsProperty("controllers", new Object[] {cb.getControllers()
+                                                     .toArray()});
+    defineObsProperty("legislators", new Object[] {cb.getLegislators()
+                                                     .toArray()});
   }
 
   /**
@@ -109,5 +109,42 @@ public final class CapabilityBoard extends Artifact {
     return agent.getPL()
                 .getPlans()
                 .toArray();
+  }
+
+  @OPERATION
+  public void registerAg(String ag, String capability) {
+    switch (Enums.lookup(DefaultCapability.class, capability)) {
+      case DETECTOR:
+        cb.registerAg(ag, DefaultCapability.DETECTOR);
+        updateObsProperty("detectors", new Object[] {cb.getDetectors()
+                                                       .toArray()});
+        break;
+      case EVALUATOR:
+        cb.registerAg(ag, DefaultCapability.EVALUATOR);
+        updateObsProperty("evaluators", new Object[] {cb.getEvaluators()
+                                                        .toArray()});
+        break;
+      case EXECUTOR:
+        cb.registerAg(ag, DefaultCapability.EXECUTOR);
+        updateObsProperty("executors", new Object[] {cb.getExecutors()
+                                                       .toArray()});
+        break;
+      case CONTROLLER:
+        cb.registerAg(ag, DefaultCapability.CONTROLLER);
+        updateObsProperty("controllers", new Object[] {cb.getControllers()
+                                                         .toArray()});
+        break;
+      case LEGISLATOR:
+        cb.registerAg(ag, DefaultCapability.LEGISLATOR);
+        updateObsProperty("legislators", new Object[] {cb.getLegislators()
+                                                         .toArray()});
+        break;
+    }
+  }
+
+  @OPERATION
+  public void registerSelfAs(String capability) {
+    String agName = getCurrentOpAgentId().getAgentName();
+    registerAg(agName, capability);
   }
 }
