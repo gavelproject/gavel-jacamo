@@ -22,3 +22,6 @@
  * SOFTWARE.
  *******************************************************************************/
 rootProject.name = 'gavel-jacamo'
+
+include ':gavel'
+project(':gavel').projectDir = new File(settingsDir, '../gavel')
