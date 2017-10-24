@@ -20,6 +20,8 @@
  *******************************************************************************/
 package gavel.jacamo;
 
+import java.util.Arrays;
+
 import cartago.Artifact;
 import cartago.OPERATION;
 import cartago.OpFeedbackParam;
@@ -50,7 +52,10 @@ public final class CapabilityBoard extends Artifact {
   }
 
   private void setupProps() {
-    defineObsProperty("capabilities", (Object[]) cb.getCapabilities());
+    Object[] capabilities = Arrays.stream(cb.getCapabilities())
+                                  .map(c -> c.toString())
+                                  .toArray();
+    defineObsProperty("capabilities", new Object[] {capabilities});
     defineObsProperty("detectors", cb.getDetectors()
                                      .toArray());
     defineObsProperty("evaluators", cb.getEvaluators()
