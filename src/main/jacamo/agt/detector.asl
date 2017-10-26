@@ -6,34 +6,23 @@
 						issuer(Issuer),
 						target(Target),
 						deactivation(Deactivation),
+						deadline(Deadline),
 						content(Content))[H|T];
+//  ///////////////////////////
   // get norms whose activation and maintenance condition are believed to be true and ignore norm instances
   .setof(EnabledNormAnnot, 
   	  EnabledNormAnnot
-  	    & not .member(activation(_), [H|T]) 
+        & not .member(activation_time(_), [H|T])
         & Activation
-//  	    & Content =.. [_,_,[_,MaintCond,_,_],_]
-        & not Deactivation,
-  	  CandidateNorms
+        & not Deactivation
+        & not Deadline,
+  	  NormInstances
   );
-  for (.member(EnabledNormAnnot,CandidateNorms)) {
-  	// get valid activation conditions
-  	.setof(Condition, Condition, ValidConditions);
-  	// get active norm instances with the same id and condition
-    .setof(Condition, 
-        norm(id(Id),_,activation(Activation),_,_,_)[activation(_)|Annots] 
-	      & not .member(deactivation(_),Annots) 
-	      & not .member(fulfillment(_),Annots) 
-	      & not .member(unfulfillment(_),Annots), 
-        ActiveNormInstances
-    );
-    // for each norm whose activation condition hasn't triggered any currently active norm instance
-    for ( .member(Activation, ValidConditions) & not .member(Activation, ActiveNormInstances)) {
+  for ( .member(EnabledNormAnnot, NormInstances) ) {
       cartago.invoke_obj("java.lang.System",currentTimeMillis,Time);
-      .add_annot(EnabledNormAnnot,activation(Time), Instance);
+      .add_annot(EnabledNormAnnot,activation_time(Time), Instance);
       +Instance;
-      !!watch_norm_instance(Instance);
-    }
+//      !!watch_norm_instance(Instance);
   }.
 
 +!watch_norm_instance(norm(Id,enabled,Condition,Issuer,Content,Sanctions)[activation(T)|Annots])
