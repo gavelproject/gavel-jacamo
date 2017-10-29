@@ -1,48 +1,57 @@
-+!detect
++!detect_normative_events
   <-
-  EnabledNormAnnot = norm(id(Id),
-						status(enabled),
-						activation(Activation),
-						issuer(Issuer),
-						target(Target),
-						deactivation(Deactivation),
-						deadline(Deadline),
-						content(Content))[H|T];
-//  ///////////////////////////
-  // get norms whose activation and maintenance condition are believed to be true and ignore norm instances
-  .setof(EnabledNormAnnot, 
-  	  EnabledNormAnnot
-        & not .member(activation_time(_), [H|T])
-        & Activation
-        & not Deactivation
-        & not Deadline,
-  	  NormInstances
+  NormTemplate = norm(id(Id),
+    status(enabled),
+    activation(Activation),
+    issuer(Issuer),
+    target(Target),
+    deactivation(Deactivation),
+    deadline(Deadline),
+    content(Content))[H|T];
+  // Get new norm instances
+  .setof(NormTemplate,
+    NormTemplate
+      & not (.member(activation_time(Time), [H|T])
+        & not (
+          .member(deactivation_time(_), [H|T])
+          | .member(compliance_time(_), [H|T])
+          | .member(violation_time(_), [H|T])
+        )
+      )
+      & Activation
+      & not Deactivation,
+    NewNormInstances
   );
-  for ( .member(EnabledNormAnnot, NormInstances) ) {
-      cartago.invoke_obj("java.lang.System",currentTimeMillis,Time);
-      .add_annot(EnabledNormAnnot,activation_time(Time), Instance);
-      +Instance;
-//      !!watch_norm_instance(Instance);
+  cartago.invoke_obj("java.lang.System",currentTimeMillis,Time);
+  for ( .member(NormTemplate, NewNormInstances) ) {
+    .add_annot(NormTemplate,activation_time(Time), Instance);
+    +Instance;
+    !monitor_norm_instance(Instance);
   }.
 
-+!watch_norm_instance(norm(Id,enabled,Condition,Issuer,Content,Sanctions)[activation(T)|Annots])
-  : Content =.. [_,obligation,[_,MaintCond,Aim,Deadline],_]
+
++!monitor_norm_instance(Instance)
+  : norm(id(Id),
+	status(enabled),
+	activation(Activation),
+	issuer(Issuer),
+	target(Target),
+	deactivation(Deactivation),
+	deadline(Deadline),
+	content(obligation(Aim))) = Instance
   <-
-  .wait(not MaintCond | Aim, Deadline);
+  .wait(Deactivation | Aim | Deadline);
   cartago.invoke_obj("java.lang.System",currentTimeMillis,Time);
-  Instance = norm(Id,enabled,Condition,Issuer,Content,Sanctions)[activation(T)|Annots];
-  
-  if (not MaintCond) {
-    .add_annot(Instance,deactivation(Time), FinishedInstance);
-  } else {
-    if (Aim) {
-      .add_annot(Instance,fulfillment(Time), FinishedInstance);
-    } else {
-      .add_annot(Instance,unfulfillment(Time), FinishedInstance);
-    }
-    +FinishedInstance;
-    !report(FinishedInstance);
-  }.
+  if (Deactivation) {
+    .add_annot(Instance,deactivation_time(Time),FinishedInstance);
+  } elif (Aim) {
+    .add_annot(Instance,compliance_time(Time),FinishedInstance);
+  } else { // Deadline is true
+    .add_annot(Instance,violation_time(Time),FinishedInstance);
+  }
+  .abolish(Instance);
+  -+FinishedInstance;
+  !report(FinishedInstance).
   
 +!report(FinishedInstance)
   <-
