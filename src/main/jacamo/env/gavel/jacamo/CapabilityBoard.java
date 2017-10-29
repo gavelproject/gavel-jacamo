@@ -20,7 +20,10 @@
  *******************************************************************************/
 package gavel.jacamo;
 
+import static jason.asSyntax.ASSyntax.createAtom;
+
 import java.util.Arrays;
+import java.util.Set;
 
 import cartago.Artifact;
 import cartago.OPERATION;
@@ -30,6 +33,8 @@ import gavel.impl.common.Enums;
 import gavel.impl.repo.CapabilityBoards;
 import jason.JasonException;
 import jason.asSemantics.Agent;
+import jason.asSyntax.ASSyntax;
+import jason.asSyntax.ListTerm;
 import jason.asSyntax.parser.ParseException;
 
 /**
@@ -56,16 +61,17 @@ public final class CapabilityBoard extends Artifact {
                                   .map(c -> c.toString())
                                   .toArray();
     defineObsProperty("capabilities", new Object[] {capabilities});
-    defineObsProperty("detectors", new Object[] {cb.getDetectors()
-                                                   .toArray()});
-    defineObsProperty("evaluators", new Object[] {cb.getEvaluators()
-                                                    .toArray()});
-    defineObsProperty("executors", new Object[] {cb.getExecutors()
-                                                   .toArray()});
-    defineObsProperty("controllers", new Object[] {cb.getControllers()
-                                                     .toArray()});
-    defineObsProperty("legislators", new Object[] {cb.getLegislators()
-                                                     .toArray()});
+    defineObsProperty("detectors", toListTerm(cb.getDetectors()));
+    defineObsProperty("evaluators", toListTerm(cb.getEvaluators()));
+    defineObsProperty("executors", toListTerm(cb.getExecutors()));
+    defineObsProperty("controllers", toListTerm(cb.getControllers()));
+    defineObsProperty("legislators", toListTerm(cb.getLegislators()));
+  }
+
+  private ListTerm toListTerm(Set<String> set) {
+    ListTerm list = ASSyntax.createList();
+    set.forEach(d -> list.add(createAtom(d.toString())));
+    return list;
   }
 
   /**
@@ -116,28 +122,23 @@ public final class CapabilityBoard extends Artifact {
     switch (Enums.lookup(DefaultCapability.class, capability)) {
       case DETECTOR:
         cb.registerAg(ag, DefaultCapability.DETECTOR);
-        updateObsProperty("detectors", new Object[] {cb.getDetectors()
-                                                       .toArray()});
+        updateObsProperty("detectors", toListTerm(cb.getDetectors()));
         break;
       case EVALUATOR:
         cb.registerAg(ag, DefaultCapability.EVALUATOR);
-        updateObsProperty("evaluators", new Object[] {cb.getEvaluators()
-                                                        .toArray()});
+        updateObsProperty("evaluators", toListTerm(cb.getEvaluators()));
         break;
       case EXECUTOR:
         cb.registerAg(ag, DefaultCapability.EXECUTOR);
-        updateObsProperty("executors", new Object[] {cb.getExecutors()
-                                                       .toArray()});
+        updateObsProperty("executors", toListTerm(cb.getExecutors()));
         break;
       case CONTROLLER:
         cb.registerAg(ag, DefaultCapability.CONTROLLER);
-        updateObsProperty("controllers", new Object[] {cb.getControllers()
-                                                         .toArray()});
+        updateObsProperty("controllers", toListTerm(cb.getControllers()));
         break;
       case LEGISLATOR:
         cb.registerAg(ag, DefaultCapability.LEGISLATOR);
-        updateObsProperty("legislators", new Object[] {cb.getLegislators()
-                                                         .toArray()});
+        updateObsProperty("legislators", toListTerm(cb.getLegislators()));
         break;
     }
   }
