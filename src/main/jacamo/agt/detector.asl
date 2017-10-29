@@ -103,14 +103,17 @@
   cartago.invoke_obj("java.lang.System",currentTimeMillis,Time);
   if (Deactivation) {
     .add_annot(Instance,deactivation_time(Time),FinishedInstance);
-  } elif (Aim) {
+    -+FinishedInstance;
+  } else {
+  	if (Aim) {
     .add_annot(Instance,compliance_time(Time),FinishedInstance);
-  } else { // Deadline is true
-    .add_annot(Instance,violation_time(Time),FinishedInstance);
-  }
-  .abolish(Instance);
-  -+FinishedInstance;
-  !report(FinishedInstance).
+    } else { // Deadline is true
+      .add_annot(Instance,violation_time(Time),FinishedInstance);
+    }
+    .abolish(Instance);
+    -+FinishedInstance;
+    !report(FinishedInstance);
+  }.
 
 
 +!report(FinishedInstance)
