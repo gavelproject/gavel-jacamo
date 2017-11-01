@@ -10,23 +10,103 @@
   !sublist(B,0,N2,D);
   S=[A|D].
 
-+!evaluate(norm(NormId,_,_,_,_,linked_sanctions(Sanctions)))
-  <-
-  // Get only enabled sanctions
-  .findall(Id, sanction(Id,enabled,_,_,_), EnabledSanctions);
 
-  // Shuffle list with linked sanctions
-  .shuffle(EnabledSanctions,ShuffledSanctions);
++!active_sanctions_for(NormInstance,Sanctions)
+  : norm(id(Id),
+      status(Status),
+      activation(Activation),
+      issuer(Issuer),
+      target(Target),
+      deactivation(Deactivation),
+      deadline(Deadline),
+      content(Content)) = NormInstance
+  <-
+  SanctionWithVar = sanction(
+    id(SId),
+    status(enabled),
+    condition(Condition),
+    Category,
+    content(VarSContent)
+  );
+  Sanction = sanction(
+    id(SId),
+    status(enabled),
+    condition(Condition),
+    Category,
+    content(SContent)
+  );
+  NsLink = nslink(status(enabled),nid(Id),sid(SId));
+  .findall(
+    Sanction,
+    NsLink
+      & SanctionWithVar
+      & Condition
+      & .term2string(VarSContent,StrVarSContent)
+      & .term2string(SContent,StrVarSContent),
+    Sanctions
+  ).
+
+
++!decide_sanctions(NormInstance,DecidedSanctions)
+  <-
+  !active_sanctions_for(NormInstance,Options);
+
+  // Shuffle list of sanction options
+  .shuffle(Options,ShuffledOptions);
 
   // Get a random number of linked sanctions
-  NumSanctions = math.random(.length(EnabledSanctions) + 1);
-  !sublist(ShuffledSanctions, 0, NumSanctions, SSne);
+  NumDecidedSanctions = math.random(.length(ShuffledOptions) + 1);
+  !sublist(ShuffledOptions, 0, NumDecidedSanctions, DecidedSanctions).
 
-  .puts("I evaluated the case and the sanctions should be #{SSne}");
-  !!order_execution(SSne).
 
-+!order_execution(SSne).
-//  <-
-//  Choose executor
-//  .send(Executor, achieve, execute(S));
-//  .
++!evaluate(NormInstance)[source(Source)]
+  <-
+  Norm = norm(id(Id),
+    status(enabled),
+    activation(Activation),
+    issuer(Issuer),
+    target(Target),
+    deactivation(Deactivation),
+    deadline(Deadline),
+    content(Content));
+  Norm[H|T] = NormInstance;
+  .my_name(Me);
+  if (Source == self) {
+    Detector = Me;
+  } else {
+    Detector = Source;
+  }
+  SD = sanction_decision(
+    id(_),
+    time(Time),
+    detector(Detector),
+    evaluator(Me),
+    target(Target),
+    norm(Norm),
+    sanction(Sanction),
+    cause(Cause)
+  );
+  if ( .member(violation_time(_),[H|T])) {
+      Cause = violation;
+  } else {
+      Cause = compliance;
+  }
+  cartago.invoke_obj("java.lang.System",currentTimeMillis,Time);
+  !decide_sanctions(NormInstance,DecidedSanctions);
+  for ( .member(Sanction,DecidedSanctions) ) {
+      addDecision(SD);
+      !choose_executor(SD,Executor);
+      .send(Executor, achieve, execute(SD));
+  }.
+
+
++!choose_executor(SanctionDecision,Executor)
+  : .my_name(Me) & executors(Executors) & .member(Me,Executors)
+  <- Executor = Me.
+
+
++!choose_executor(SanctionDecision,Executor)
+  <-
+  ?executors(Executors);
+  .shuffle(Executors,Shuffled);
+  .nth(0,Shuffled,Executor).
