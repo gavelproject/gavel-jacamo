@@ -25,6 +25,7 @@ import static jason.asSyntax.ASSyntax.parseStructure;
 import cartago.Artifact;
 import cartago.LINK;
 import cartago.OPERATION;
+import cartago.OpFeedbackParam;
 import gavel.api.sanction.SanctionApplication;
 import gavel.api.sanction.SanctionDecision;
 import gavel.api.sanction.SanctionOutcome;
@@ -32,6 +33,8 @@ import gavel.impl.repo.DeFactos;
 import gavel.impl.sanction.SanctionApplications;
 import gavel.impl.sanction.SanctionDecisions;
 import gavel.impl.sanction.SanctionOutcomes;
+import jason.asSyntax.ASSyntax;
+import jason.asSyntax.Atom;
 import jason.asSyntax.Structure;
 import jason.asSyntax.parser.ParseException;
 
@@ -55,14 +58,36 @@ public final class DeFacto extends Artifact {
   @LINK
   @OPERATION
   public void addDecision(Object sd) {
-    if (sd instanceof SanctionDecision)
-      addDecision((SanctionDecision) sd);
-    else if (sd instanceof String)
-      addDecision(SanctionDecisions.parse((String) sd));
-    else
+    addDecision(sd, new OpFeedbackParam<Atom>());
+  }
+
+  /**
+   * Adds new sanction decision.
+   * 
+   * Only instances of {@link SanctionDecision} or {@link String} should be passed as argument. For
+   * both cases, the decision will be added using {@link #addDecision(SanctionDecision)}. If
+   * {@code sd} is an instance of {@link String}, then it will be parsed using
+   * {@link SanctionDecisions#parse(String)} before being added to the repository.
+   * 
+   * @param sd sanction decision to be added
+   * @param sdId output parameter for sanction decision id
+   */
+  @LINK
+  @OPERATION
+  public void addDecision(Object sd, OpFeedbackParam<Atom> sdId) {
+    SanctionDecision toAdd = null;
+    if (sd instanceof SanctionDecision) {
+      toAdd = (SanctionDecision) sd;
+    } else if (sd instanceof String) {
+      toAdd = SanctionDecisions.parse((String) sd);
+    } else {
       failed("Expected " + String.class.getCanonicalName() + " or "
           + SanctionDecision.class.getCanonicalName() + " but got " + sd.getClass()
                                                                         .getCanonicalName());
+    }
+    addDecision(toAdd);
+    sdId.set(ASSyntax.createAtom(toAdd.getId()
+                                      .toString()));
   }
 
   /** Adds new sanction decision {@code sd}. */
