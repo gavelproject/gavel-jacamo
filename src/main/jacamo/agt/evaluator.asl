@@ -77,7 +77,7 @@
     Detector = Source;
   }
   SD = sanction_decision(
-    id(_),
+    id(SDId),
     time(Time),
     detector(Detector),
     evaluator(Me),
@@ -86,7 +86,7 @@
     sanction(Sanction),
     cause(Cause)
   );
-  if ( .member(violation_time(_),[H|T])) {
+  if ( .member(violation_time(_),[H|T]) ) {
       Cause = violation;
   } else {
       Cause = compliance;
@@ -94,7 +94,7 @@
   cartago.invoke_obj("java.lang.System",currentTimeMillis,Time);
   !decide_sanctions(NormInstance,DecidedSanctions);
   for ( .member(Sanction,DecidedSanctions) ) {
-      addDecision(SD);
+      addDecision(SD,SDId);
       !choose_executor(SD,Executor);
       .send(Executor, achieve, execute(SD));
   }.
