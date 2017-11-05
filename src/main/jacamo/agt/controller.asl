@@ -23,12 +23,9 @@
   NormToMonitorWithAnnot = norm(
     id(NormId),_,_,_,target(NormTarget),_,_,_
   )[H|T];
-  ?current_round(ApplicationRound);
   .wait({+NormToMonitorWithoutAnnot}); // activation
   .wait({+NormToMonitorWithAnnot}); // violation/compliance
   cartago.invoke_obj("java.lang.System",currentTimeMillis,SOTime);
-  ?current_round(CurrentRound);
-  ?max_rounds_until_outcome(MaxWait);
   SO = sanction_outcome(
     id(_),
     time(SOTime),
@@ -36,14 +33,9 @@
     controller(Me),
     efficacy(Efficacy)
   );
-  if ( (ApplicationRound + MaxWait) <= CurrentRound ) {
-    Efficacy = indeterminate;
+  if ( .member(violation_time(_),[H|T]) ) {
+    Efficacy = effective;
   } else {
-    // TODO: prepare for deactivation as well
-    if ( .member(violation_time(_),[H|T]) ) {
-      Efficacy = effective;
-    } else {
-      Efficacy = ineffective;
-    }
+    Efficacy = ineffective;
   }
   addOutcome(SO).
