@@ -5,8 +5,8 @@
       detector(Detector),
       evaluator(Me),
       target(Target),
-      norm(Norm),
-      sanction(Sanction),
+      Norm,
+      Sanction,
       cause(Cause)
     ) = SanctionDecision &
     sanction(

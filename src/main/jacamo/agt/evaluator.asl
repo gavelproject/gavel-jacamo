@@ -82,8 +82,8 @@
     detector(Detector),
     evaluator(Me),
     target(Target),
-    norm(Norm),
-    sanction(Sanction),
+    Norm,
+    Sanction,
     cause(Cause)
   );
   if ( .member(violation_time(_),[H|T]) ) {
