@@ -12,7 +12,7 @@
     sanction(
       id(SId),
       status(enabled),
-      condition(Condition),
+      activation(Activation),
       Category,
       content(SContent)
     ) = Sanction

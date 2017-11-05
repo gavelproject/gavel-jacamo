@@ -14,7 +14,7 @@
 +!active_sanctions_for(NormInstance,Sanctions)
   : norm(id(Id),
       status(Status),
-      activation(Activation),
+      activation(NActivation),
       issuer(Issuer),
       target(Target),
       deactivation(Deactivation),
@@ -24,14 +24,14 @@
   SanctionWithVar = sanction(
     id(SId),
     status(enabled),
-    condition(Condition),
+    activation(SActivation),
     Category,
     content(VarSContent)
   );
   Sanction = sanction(
     id(SId),
     status(enabled),
-    condition(Condition),
+    activation(SActivation),
     Category,
     content(SContent)
   );
@@ -40,7 +40,7 @@
     Sanction,
     NsLink
       & SanctionWithVar
-      & Condition
+      & SActivation
       & .term2string(VarSContent,StrVarSContent)
       & .term2string(SContent,StrVarSContent),
     Sanctions
@@ -94,9 +94,9 @@
   cartago.invoke_obj("java.lang.System",currentTimeMillis,Time);
   !decide_sanctions(NormInstance,DecidedSanctions);
   for ( .member(Sanction,DecidedSanctions) ) {
-      addDecision(SD,SDId);
-      !choose_executor(SD,Executor);
-      .send(Executor, achieve, execute(SD));
+    addDecision(SD,SDId);
+    !choose_executor(SD,Executor);
+    .send(Executor, achieve, execute(SD));
   }.
 
 
