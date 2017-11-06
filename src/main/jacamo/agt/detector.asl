@@ -70,12 +70,11 @@
   // Get new norm instances
   .setof(NormTemplate,
     NormTemplate
-      & not (.member(activation_time(Time), [H|T])
-        & not (
-          .member(deactivation_time(_), [H|T])
-          | .member(compliance_time(_), [H|T])
-          | .member(violation_time(_), [H|T])
-        )
+      & not (
+        .member(activation_time(_), [H|T])
+        | .member(deactivation_time(_), [H|T])
+        | .member(compliance_time(_), [H|T])
+        | .member(violation_time(_), [H|T])
       )
       & Activation
       & not Deactivation,
