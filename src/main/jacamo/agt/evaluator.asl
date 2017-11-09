@@ -59,7 +59,7 @@
   !sublist(ShuffledOptions, 0, NumDecidedSanctions, DecidedSanctions).
 
 
-+!evaluate(NormInstance)[source(Source)]
++!evaluate(NormInstance[H|T])[source(Source)]
   <-
   Norm = norm(id(Id),
     status(enabled),
@@ -69,7 +69,7 @@
     deactivation(Deactivation),
     deadline(Deadline),
     content(Content));
-  Norm[H|T] = NormInstance;
+  Norm = NormInstance;
   .my_name(Me);
   if (Source == self) {
     Detector = Me;
