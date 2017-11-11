@@ -96,7 +96,7 @@
   for ( .member(Sanction,DecidedSanctions) ) {
     addDecision(SD,SDId);
     !choose_executor(SD,Executor);
-    .send(Executor, achieve, execute(SD));
+    !request_application(SD,Executor);
   }.
 
 
@@ -110,3 +110,8 @@
   ?executors(Executors);
   .shuffle(Executors,Shuffled);
   .nth(0,Shuffled,Executor).
+
++!request_application(SD,Executor) : .my_name(Executor) <- !execute(SD).
+
++!request_application(SD,Executor) <- .send(Executor, achieve, execute(SD)).
+
